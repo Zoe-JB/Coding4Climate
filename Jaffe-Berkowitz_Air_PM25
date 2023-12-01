@@ -1,0 +1,179 @@
+---
+title: "Pm 2.5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse); library(ggplot2)
+data <- read.csv("~/Desktop/EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.csv")
+```
+https://www.epa.gov/ejscreen/download-ejscreen-data
+http://www.usa.com/rank/tennessee-state--population-density--county-rank.htm
+
+```{r}
+df<-data%>%
+  select(STATE_NAME, ST_ABBREV, CNTY_NAME, PM25)
+
+df$PM25<-as.numeric(df$PM25)
+```
+
+```{r}
+tndf<-df%>%
+  filter(ST_ABBREV=='TN')
+```
+
+```{r}
+daviddf<-tndf%>%
+  filter(CNTY_NAME=='Davidson County')
+```
+
+```{r}
+sedf<-df%>%
+  filter(ST_ABBREV=='KY'|ST_ABBREV=='TN'|ST_ABBREV=='NC'|ST_ABBREV=='SC'|ST_ABBREV=='GA'| ST_ABBREV=='FL'| ST_ABBREV=='MS'| ST_ABBREV=='AL')
+```
+
+```{r}
+dfmean<- mean(df$PM25, na.rm = TRUE)
+sedfmean<- mean(sedf$PM25, na.rm = TRUE)
+tndfmean<- mean(tndf$PM25, na.rm = TRUE)
+daviddfmean<- mean(daviddf$PM25, na.rm = TRUE)
+dfmean; sedfmean; tndfmean; daviddfmean
+```
+
+```{r}
+my_theme<-  theme(
+    axis.line = element_line(color = "black"),  
+    panel.background = element_blank(), 
+    plot.title = element_text(size = 15, face = "bold", hjust = 0.5, family = 'Avenir'),
+    axis.title.y = element_text(size = 10, family = 'Avenir'),
+    axis.title.x = element_text(size = 10, family = 'Avenir'),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+```{r}
+#Comparing TN county averages
+groupedtn <- tndf%>%
+  group_by(CNTY_NAME)
+
+tn_county_means <- groupedtn %>% 
+  summarize(mean_PM25 = mean(PM25),
+            total_count = n())
+```
+
+```{r}
+# Population Density Vector
+#population desnity is in the units of per square mile
+population_density <- c(1232.2, 1192.5, 838.1, 598.7, 441.4, 378.4, 365.0, 357.6, 334.7, 332.2, 306.8, 304.7, 219.6, 218.5, 205.0, 201.1, 181.9, 176.1, 166.0, 164.8, 154.9, 140.7, 135.2, 134.4, 129.8, 128.1, 122.3, 121.3, 113.6, 109.9, 102.0, 97.5, 96.2, 95.9, 91.9, 83.3, 82.4, 82.2, 81.0, 80.0, 77.4, 75.1, 73.5, 72.5, 72.1, 71.3, 69.0, 68.8, 68.1, 67.4, 60.4, 59.8, 59.6, 58.7, 58.7, 57.7, 56.5, 55.2, 54.9, 54.7, 54.4, 54.4, 54.2, 54.0, 53.2, 51.9, 50.8, 48.7, 47.6, 47.5, 46.4, 43.6, 42.5, 41.8, 41.5, 40.4, 39.8, 39.8, 39.6, 37.8, 37.6, 37.5, 36.2, 35.9, 34.4, 33.9, 32.9, 32.6, 30.1, 30.0, 29.2, 27.0, 23.1, 20.3, 18.6)
+
+# County Names Vector
+county_names <- c("Davidson County", "Shelby County", "Knox County", "Hamilton County", "Rutherford County", "Washington County", "Sullivan County", "Hamblen County", "Montgomery County", "Williamson County", "Sumner County", "Bradley County", "Blount County", "Anderson County", "Wilson County", "Loudon County", "Putnam County", "Madison County", "Jefferson County", "Carter County", "Sevier County", "Robertson County", "Roane County", "Maury County", "Tipton County", "Cheatham County", "Coffee County", "Mcminn County", "Hawkins County", "Greene County", "Dickson County", "Unicoi County", "Bedford County", "Rhea County", "Warren County", "Cumberland County", "Marshall County", "Gibson County", "Campbell County", "Cocke County", "Union County", "Grainger County", "Macon County", "Dyer County", "Claiborne County", "Franklin County", "Monroe County", "White County", "Lawrence County", "Trousdale County", "Chester County", "Johnson County", "Weakley County", "Lincoln County", "Smith County", "Dekalb County", "Obion County", "Marion County", "Crockett County", "Fayette County", "Lauderdale County", "Henry County", "Sequatchie County", "Meigs County", "Henderson County", "Cannon County", "Overton County", "Moore County", "Giles County", "Carroll County", "Mcnairy County", "Hardin County", "Lewis County", "Morgan County", "Scott County", "Houston County", "Lake County", "Hickman County", "Hardeman County", "Polk County", "Grundy County", "Benton County", "Jackson County", "Fentress County", "Haywood County", "Decatur County", "Humphreys County", "Bledsoe County", "Clay County", "Hancock County", "Pickett County", "Stewart County", "Wayne County", "Van Buren County", "Perry County")
+
+
+# Combine into a Dataframe
+densitydf <- data.frame(CNTY_NAME = county_names, Population_Density = population_density)
+
+tn_county_means1 <- merge(tn_county_means, densitydf, by = "CNTY_NAME")
+```
+
+```{r}
+#creating barplot based on population density of counties
+
+breaks <- c(0, 42.5, 68.8, 134.4, Inf)
+
+# Define labels for each group
+labels <- c("Low Density", "Medium-Low Density", "Medium-High Density", "High Density")
+
+# Create a new column with labels for each group
+tn_county_means1$Population_Density_Group <- cut(
+  tn_county_means1$Population_Density,
+  breaks = breaks,
+  labels = labels,
+  include.lowest = TRUE  # Include the lowest value in the first group
+)
+
+# Create Bar Plot with ggplot
+tn_plot<- ggplot(tn_county_means1, aes(x = factor(Population_Density_Group), y = mean_PM25)) +
+  geom_bar(stat = "summary", fun = "mean", fill = "#9E681C", color = "black") +
+  labs(title = "Mean PM 2.5 Value for TN Counties \nBased on Population Density",
+       x = "Population Density of Counties",
+       y = "Mean PM 2.5 Value") +
+  scale_x_discrete(labels = labels) +
+  stat_summary(fun = "mean", geom = "text", aes(label = round(after_stat(y), 2)), vjust = -0.5, color = "black") +  # Add text labels
+  my_theme
+
+tn_plot
+
+```
+
+
+```{r}
+#Comparing Counties of Major Southeast Cities
+se_counties<-df%>%
+  filter(CNTY_NAME=='Miami-Dade County'| CNTY_NAME=='Davidson County' & ST_ABBREV=='TN'| CNTY_NAME=='Fulton County' & ST_ABBREV=='GA' | CNTY_NAME=='Jefferson County' & ST_ABBREV=='AL'| CNTY_NAME=='Mecklenburg County'|CNTY_NAME=='Charleston County' & ST_ABBREV=='SC')
+
+se_counties<-se_counties%>%
+  drop_na()
+
+groupedse <- se_counties%>%
+  group_by(CNTY_NAME)
+
+se_county_means <- groupedse %>% 
+  summarize(mean_PM25 = mean(PM25),
+            total_count = n())
+
+se_plot<-ggplot(se_county_means, aes(x = CNTY_NAME, y = mean_PM25)) +
+  geom_bar(stat = "identity", fill = "#8DBEB3", color='Black') +
+  geom_text(aes(label = round(mean_PM25, 2)), vjust = -0.5, color = "black") +  # Add text labels
+  labs(title = "Average PM 2.5 levels in Counties \nof Major Southeast US Cities", x = "County", y = "Mean PM 2.5 Value")+
+  my_theme
+
+
+
+```
+
+```{r}
+#Comparing Major Cities Nationally
+major_counties<-df%>%
+  filter(CNTY_NAME=='New York County' & ST_ABBREV=='NY'| CNTY_NAME=='Los Angeles County' & ST_ABBREV=='CA'| CNTY_NAME=='Cook County' & ST_ABBREV=='IL'| CNTY_NAME=='Clark County' & ST_ABBREV=='NV'| CNTY_NAME=='Suffolk County' & ST_ABBREV=='MA'| CNTY_NAME=='Maricopa County' & ST_ABBREV=='AZ'| CNTY_NAME=='Davidson County' & ST_ABBREV=='TN'| CNTY_NAME=='Philadelphia County' & ST_ABBREV=='PA'| CNTY_NAME=='Denver County' & ST_ABBREV=='CO')
+
+major_counties<-major_counties%>%
+  drop_na()
+
+groupedmajor <- major_counties%>%
+  group_by(CNTY_NAME)
+
+major_county_means <- groupedmajor %>% 
+  summarize(mean_PM25 = mean(PM25),
+            total_count = n())
+
+national_plot<-ggplot(major_county_means, aes(x = CNTY_NAME, y = mean_PM25)) +
+  geom_bar(stat = "identity", fill = "#6CA335", color = 'black') +
+  geom_text(aes(label = round(mean_PM25, 2)), vjust = -0.5, color = "black") +  # Add text labels
+  labs(title = "Average PM 2.5 Levels in Counties \nof Major US Cities", x = "County", y = "Mean PM 2.5 Value")+
+  my_theme
+```
+
+```{r}
+library(ggpubr)
+figure <- ggarrange(tn_plot, se_plot, national_plot,
+                    ncol = 3, nrow = 1)
+figure
+```
+
+```{r}
+ggplot2::ggsave(
+
+  filename = "PM25.png", # change extension as needed
+
+  plot = figure, # change to your {ggplot2} object
+
+  height = 6, # figure height, adjust as necessary
+
+  width = 12, # figure width, adjust as necessary
+
+  dpi = 600 # high quality dots per inch 
+
+)
+```
